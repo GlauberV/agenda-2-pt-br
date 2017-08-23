@@ -1,1 +1,1 @@
-A agenda 2.0 é uma continuação da agenda, com menos comentérios (por enquanto), já que na primeira versão havia mais contéudo novo até o momento. Essa agenda ainda vai receber novas funcionalidade e melhorias.
+A agenda 2.0 é uma continuação da agenda, com menos comentérios (por enquanto), já que na primeira versão havia mais contéudo novo até o momento e sem falar que agora o código quase fala por si só. Contudo, essa agenda ainda vai receber novas funcionalidade e melhorias.
