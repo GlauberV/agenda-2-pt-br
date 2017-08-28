@@ -18,11 +18,16 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
+
 import java.util.List;
 
 import br.com.alura.agenda.adapter.AlunosAdapter;
 import br.com.alura.agenda.dao.AlunoDAO;
 import br.com.alura.agenda.dto.AlunoSync;
+import br.com.alura.agenda.event.AtualizaListaAlunoEvent;
 import br.com.alura.agenda.modelo.Aluno;
 import br.com.alura.agenda.retrofit.RetrofitInicializador;
 import br.com.alura.agenda.tasks.EnviaAlunosTask;
@@ -34,11 +39,15 @@ public class ListaAlunosActivity extends AppCompatActivity {
 
     private ListView listaAlunos;
     private SwipeRefreshLayout swipe;
+    private EventBus eventBus; // 4.
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_lista_alunos);
+
+        eventBus = EventBus.getDefault(); // 1.
+        //eventBus.register(this); // 4.
 
         listaAlunos = (ListView) findViewById(R.id.lista_alunos);
 
@@ -76,6 +85,11 @@ public class ListaAlunosActivity extends AppCompatActivity {
 
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN) // 2. e 3.
+    public void atualizaListaAlunoEvent(AtualizaListaAlunoEvent event) {
+        carregaLista();
+    }
+
     private void carregaLista() {
         AlunoDAO dao = new AlunoDAO(this);
         List<Aluno> alunos = dao.buscaAlunos();
@@ -95,6 +109,13 @@ public class ListaAlunosActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         carregaLista();
+        eventBus.register(this); // 4.
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        eventBus.unregister(this); // 4.
     }
 
     private void buscaAlunos() {
@@ -214,3 +235,24 @@ public class ListaAlunosActivity extends AppCompatActivity {
         });
     }
 }
+
+// 1. Criamos uma instância do EventBus novamente assim como fizemos anteriormente, mas agora é
+// necessário registrar a activity para receber um evento, que até então não foi especificado qual
+// será, ou seja, apenas recebemos esse evento.
+
+// 2. Dessa forma estamos de fato inscrevendo nossa activity no evento indicado por parâmetro do
+// método "atualiListaAlunoEvent(AtualizaListaAlunoEvent event);", fazendo referência a classe sem
+// implementações que criamos.
+
+// 3. Um detalhe importante para o código esse código, é que estamos modificando uma view e, quando
+// fazemos uso do EventBus, os métodos que são inscritos não necessariamente são executados na thread
+// principal. Em outras palavras, apenas a activity pode modificar a view e sua hierarquia, portanto,
+// da forma que está implementado atualmente, o Android lançará uma exception! Para evitar esse problema
+// precisamos apenas indicar que esse método deve ser executado pela thread principal, adicionando o
+// parâmetro "(threadMode = ThreadMode.MAIN)" na annotation @Subscribe.
+
+// 4. Quando a activity ListaAlunosActivity não estiver em foco passando para o "onPause()" e
+// recebermos uma atualização do servidor, poderemos receber uma exception por estar executando um
+// código que só deveria funcionar quando estivésemos em foreground, ou seja, com a tela ativa. Só
+// precisaremos modificar os métodos "onResume()" e o "onPause()" para registrar e desregistrar
+// respectivamente.
